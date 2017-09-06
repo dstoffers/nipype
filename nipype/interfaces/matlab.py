@@ -1,11 +1,14 @@
+# -*- coding: utf-8 -*-
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 """ General matlab interface code """
+from __future__ import print_function, division, unicode_literals, absolute_import
+from builtins import open
 import os
 
+from .. import config
 from .base import (CommandLineInputSpec, InputMultiPath, isdefined,
                    CommandLine, traits, File, Directory)
-from .. import config
 
 
 def get_matlab_command():
@@ -168,9 +171,9 @@ class MatlabCommand(CommandLine):
         prescript = self.inputs.prescript
         postscript = self.inputs.postscript
 
-        # postcript takes different default value depending on the mfile argument
+        # prescript takes different default value depending on the mfile argument
         if mfile:
-            prescript.insert(0, "fprintf(1,'Executing %s at %s:\\n',mfilename,datestr(now));")
+            prescript.insert(0, "fprintf(1,'Executing %s at %s:\\n',mfilename(),datestr(now));")
         else:
             prescript.insert(0, "fprintf(1,'Executing code at %s:\\n',datestr(now));")
         for path in paths:

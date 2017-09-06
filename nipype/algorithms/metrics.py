@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 '''
@@ -11,9 +12,8 @@ measures to evaluate results from other processing units.
     >>> os.chdir(datadir)
 
 '''
-from __future__ import division
-from builtins import zip
-from builtins import range
+from __future__ import print_function, division, unicode_literals, absolute_import
+from builtins import zip, range
 
 import os
 import os.path as op
@@ -30,6 +30,8 @@ from ..utils.misc import package_check
 from ..interfaces.base import (BaseInterface, traits, TraitedSpec, File,
                                InputMultiPath,
                                BaseInterfaceInputSpec, isdefined)
+from ..utils import NUMPY_MMAP
+
 iflogger = logging.getLogger('interface')
 
 
@@ -105,12 +107,12 @@ class Distance(BaseInterface):
                 set2_coordinates.T[point2, :])
 
     def _eucl_cog(self, nii1, nii2):
-        origdata1 = nii1.get_data().astype(np.bool)
-        cog_t = np.array(center_of_mass(origdata1)).reshape(-1, 1)
+        origdata1 = np.logical_and(nii1.get_data() != 0, np.logical_not(np.isnan(nii1.get_data())))
+        cog_t = np.array(center_of_mass(origdata1.copy())).reshape(-1, 1)
         cog_t = np.vstack((cog_t, np.array([1])))
         cog_t_coor = np.dot(nii1.affine, cog_t)[:3, :]
 
-        origdata2 = nii2.get_data().astype(np.bool)
+        origdata2 = np.logical_and(nii2.get_data() != 0, np.logical_not(np.isnan(nii2.get_data())))
         (labeled_data, n_labels) = label(origdata2)
 
         cogs = np.ones((4, n_labels))
@@ -181,8 +183,9 @@ class Distance(BaseInterface):
         return np.max(mins)
 
     def _run_interface(self, runtime):
-        nii1 = nb.load(self.inputs.volume1)
-        nii2 = nb.load(self.inputs.volume2)
+        # there is a bug in some scipy ndimage methods that gets tripped by memory mapped objects
+        nii1 = nb.load(self.inputs.volume1, mmap=False)
+        nii2 = nb.load(self.inputs.volume2, mmap=False)
 
         if self.inputs.method == "eucl_min":
             self._distance, self._point1, self._point2 = self._eucl_min(
@@ -409,8 +412,8 @@ class FuzzyOverlap(BaseInterface):
         assert(ncomp == len(self.inputs.in_tst))
         weights = np.ones(shape=ncomp)
 
-        img_ref = np.array([nb.load(fname).get_data() for fname in self.inputs.in_ref])
-        img_tst = np.array([nb.load(fname).get_data() for fname in self.inputs.in_tst])
+        img_ref = np.array([nb.load(fname, mmap=NUMPY_MMAP).get_data() for fname in self.inputs.in_ref])
+        img_tst = np.array([nb.load(fname, mmap=NUMPY_MMAP).get_data() for fname in self.inputs.in_tst])
 
         msk = np.sum(img_ref, axis=0)
         msk[msk > 0] = 1.0

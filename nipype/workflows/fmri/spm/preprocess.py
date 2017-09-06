@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 
@@ -10,7 +11,8 @@ from ....pipeline import engine as pe
 from ....interfaces.matlab import no_matlab
 from ...smri.freesurfer.utils import create_getmask_flow
 
-logger = pe.logger
+from .... import logging
+logger = logging.getLogger('workflow')
 
 
 def create_spm_preproc(name='preproc'):

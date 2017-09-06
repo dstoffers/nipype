@@ -1,15 +1,17 @@
+# -*- coding: utf-8 -*-
 """Parallel workflow execution via OAR http://oar.imag.fr
 """
+from __future__ import print_function, division, unicode_literals, absolute_import
 
+from builtins import str, open
 import os
 import stat
 from time import sleep
 import subprocess
-import json
+import simplejson as json
 
 from .base import (SGELikeBatchManagerBase, logger, iflogger, logging)
-
-from nipype.interfaces.base import CommandLine
+from ...interfaces.base import CommandLine
 
 
 class OARPlugin(SGELikeBatchManagerBase):
@@ -37,6 +39,8 @@ class OARPlugin(SGELikeBatchManagerBase):
         self._max_tries = 2
         self._max_jobname_length = 15
         if 'plugin_args' in kwargs and kwargs['plugin_args']:
+            if 'oarsub_args' in kwargs['plugin_args']:
+                self._oarsub_args = kwargs['plugin_args']['oarsub_args']
             if 'retry_timeout' in kwargs['plugin_args']:
                 self._retry_timeout = kwargs['plugin_args']['retry_timeout']
             if 'max_tries' in kwargs['plugin_args']:
@@ -63,7 +67,7 @@ class OARPlugin(SGELikeBatchManagerBase):
         return is_pending
 
     def _submit_batchtask(self, scriptfile, node):
-        cmd = CommandLine('oarsub', environ=os.environ.data,
+        cmd = CommandLine('oarsub', environ=dict(os.environ),
                           terminal_output='allatonce')
         path = os.path.dirname(scriptfile)
         oarsubargs = ''
@@ -79,11 +83,11 @@ class OARPlugin(SGELikeBatchManagerBase):
                 oarsubargs += (" " + node.plugin_args['oarsub_args'])
 
         if node._hierarchy:
-            jobname = '.'.join((os.environ.data['LOGNAME'],
+            jobname = '.'.join((dict(os.environ)['LOGNAME'],
                                 node._hierarchy,
                                 node._id))
         else:
-            jobname = '.'.join((os.environ.data['LOGNAME'],
+            jobname = '.'.join((dict(os.environ)['LOGNAME'],
                                 node._id))
         jobnameitems = jobname.split('.')
         jobnameitems.reverse()
